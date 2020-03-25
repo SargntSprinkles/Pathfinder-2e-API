@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
 	"github.com/gorilla/mux"
 )
 
 var all []Ancestry
 
-// var expireTimer = 30 * time.Minute
-var expireTimer = 10 * time.Second
+var expireTimer = 24 * time.Hour
 
 // Ancestry : a.k.a. race
 type Ancestry struct {
@@ -141,14 +141,43 @@ func (a *Ancestry) scrape() {
 		collector := colly.NewCollector(colly.AllowedDomains("2e.aonprd.com"))
 		// Traits: <span class="trait">
 		a.Traits = []string{}
-		collector.OnHTML("span", func(trait *colly.HTMLElement) {
-			if trait.Attr("class") == "trait" {
-				a.Traits = append(a.Traits, trait.Text)
-			}
+		var source string
+		collector.OnHTML("span.trait", func(trait *colly.HTMLElement) {
+			// if trait.Attr("class") == "trait" {
+			a.Traits = append(a.Traits, trait.Text)
+			// }
 		})
-		collector.OnHTML("span", func(descriptionGeneral *colly.HTMLElement) {
-			if descriptionGeneral.Attr("id") == "ctl00_MainContent_DetailedOutput" {
-				a.Description.General = descriptionGeneral.Text
+		collector.OnHTML("a.external-link", func(sourceLink *colly.HTMLElement) {
+			source = sourceLink.Text
+		})
+		collector.OnHTML("#ctl00_MainContent_DetailedOutput", func(descriptionGeneral *colly.HTMLElement) {
+			a.Description.General = strings.Split(descriptionGeneral.Text, source)[1]
+			a.Description.General = strings.Split(a.Description.General, "You Might...")[0]
+		})
+		collector.OnHTML("h2.title", func(title *colly.HTMLElement) {
+			//check text to see which section it is, then handle accordingly
+			switch title.Text {
+			case "You Might...":
+				a.Description.YouMight = []string{}
+				title.DOM.Siblings().Filter("ul").First().Children().Each(func(i int, li *goquery.Selection) {
+					a.Description.YouMight = append(a.Description.YouMight, li.Text())
+				})
+			case "Others Probably...":
+				a.Description.OthersProbably = []string{}
+				title.DOM.Siblings().Filter("ul").Last().Children().Each(func(i int, li *goquery.Selection) {
+					a.Description.OthersProbably = append(a.Description.OthersProbably, li.Text())
+				})
+			case "Physical Description":
+			case "Society":
+			case "Aligntment and Religion":
+			case "Names":
+			case "Hit Points":
+			case "Size":
+			case "Speed":
+			case "Ability Boosts":
+			case "Ability Flaw(s)":
+			case "Languages":
+			default:
 			}
 		})
 		collector.Visit(a.URL)
