@@ -13,7 +13,8 @@ class AncestryDescription:
             self.others_probably = helpers.ul_to_list(helpers.trim_html(full_page, 'Others Probably...</h2>', f'<h1 class="title">{name} Mechanics'))
         else:
             self.others_probably = helpers.ul_to_list(helpers.trim_html(full_page, 'Others Probably...</h2>', '<h2 class="title">Physical Description'))
-        self.physical_description = ''
+        if 'half' not in name.lower():
+            self.physical_description = helpers.trim_html(full_page, 'Physical Description</h2>', '<h2 class="title">Society')
         self.society = ''
         self.alignment_religion = ''
         self.names = ''
