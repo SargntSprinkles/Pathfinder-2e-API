@@ -13,12 +13,10 @@ class AncestryDescription:
             self.others_probably = helpers.ul_to_list(helpers.trim_html(full_page, 'Others Probably...</h2>', f'<h1 class="title">{name} Mechanics'))
         else:
             self.others_probably = helpers.ul_to_list(helpers.trim_html(full_page, 'Others Probably...</h2>', '<h2 class="title">Physical Description'))
-        if 'half' not in name.lower():
             self.physical_description = helpers.trim_html(full_page, 'Physical Description</h2>', '<h2 class="title">Society')
-        self.society = ''
-        self.alignment_religion = ''
-        self.names = ''
-        self.sample_names = ['']
+            self.society = helpers.trim_html(full_page, 'Society</h2>', '<h2 class="title">Alignment and Religion')
+            self.alignment_religion = helpers.trim_html(full_page, 'Alignment and Religion</h2>', '<h2 class="title">Names</h2>')
+            self.names = helpers.trim_html(full_page, '<h2 class="title">Names</h2>', f'<h1 class="title">{name} Mechanics').replace('<h3 class="title">Sample Names</h3>', 'Sample names: ')
         
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -49,8 +47,7 @@ class Ancestry:
                 'PhysicalDescription': self.description.physical_description,
                 'Society': self.description.society,
                 'AlignmentReligion': self.description.alignment_religion,
-                'Names': self.description.names,
-                'SampleNames': self.description.sample_names
+                'Names': self.description.names
             },
             'HP': self.hp,
             'Size': self.size,
@@ -79,12 +76,60 @@ class Ancestry:
         ancestral_soup = BeautifulSoup(response.text, 'html.parser')
         
         # scrape traits
-        trait_spans = ancestral_soup.find_all("span", class_="trait")
+        trait_spans = ancestral_soup.find_all('span', class_='trait')
         trait_list = [t.a.contents[0] for t in trait_spans]
         self.traits = trait_list
         
+        ancestral_soup_str = str(ancestral_soup)
+
         # scrape description
-        self.description = AncestryDescription(str(ancestral_soup), self.name)
+        self.description = AncestryDescription(ancestral_soup_str, self.name)
+        self.hp = helpers.trim_html(ancestral_soup_str, 'Hit Points</h2>', '<h2 class="title">Size')
+        self.size = helpers.trim_html(ancestral_soup_str, 'Size</h2>', '<h2 class="title">Speed')
+        self.speed = helpers.trim_html(ancestral_soup_str, 'Speed</h2>', '<h2 class="title">Ability Boosts')
+        
+        if '<h2 class="title">Ability Flaw(s)</h2>' in ancestral_soup_str:
+            self.boosts = helpers.trim_html(ancestral_soup_str, 'Ability Boosts</h2>', '<h2 class="title">Ability Flaw(s)').split('\n')
+            self.flaws = helpers.trim_html(ancestral_soup_str, 'Ability Flaw(s)</h2>', '<h2 class="title">Languages').split('\n')
+        else:
+            self.boosts = helpers.trim_html(ancestral_soup_str, 'Ability Boosts</h2>', '<h2 class="title">Languages').split('\n')
+        
+        specials_soup = ancestral_soup.find_all('h2', class_='title')
+        specials_list = [str(s) for s in specials_soup]
+        languages_index = -1
+        for i in range(len(specials_list)):
+            if 'Languages' in specials_list[i]:
+                languages_index = i
+                specials_list = specials_list[i+1:]
+                break
+
+        if languages_index >= 0 and len(specials_list) > 0:
+            tmp_languages = helpers.trim_html(ancestral_soup_str, 'Languages</h2>', specials_list[0]).split('\n')
+            for i in range(len(tmp_languages)):
+                if '<a' in tmp_languages[i]:
+                    tmp_languages[i] = helpers.trim_html(tmp_languages[i], '>', '</a>')
+            self.languages = tmp_languages
+            self.specials = [] # TODO populate specials
+        else:
+            # TODO languages -> end for Ancestries with no specials
+            pass
+
+        # Hit Points
+        # Size
+        # Speed
+        # Ability Boosts
+        #     Constitution
+        #     Wisdom
+        #     Free
+        # Ability Flaw(s)
+        #     Charisma
+        # Languages
+        #     Common
+        #     Dwarven
+        #     Additional languages equal to your Intelligence modifier (if it’s positive). Choose from Gnomish, Goblin, Jotun, Orcish, Terran, Undercommon, and any other languages to which you have access (such as the languages prevalent in your region).
+        # Darkvision
+        #     You can see in darkness and dim light just as well as you can see in bright light, though your vision in darkness is in black and white.
+        # Clan Dagger
 
         self.last_updated = str(datetime.datetime.now())
         return True
