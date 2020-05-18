@@ -36,9 +36,9 @@ class Ancestry:
         self.hp = 0
         self.size = ''
         self.speed = 0
-        self.boosts = ['']
-        self.flaws = ['']
-        self.languages = ['']
+        self.boosts = []
+        self.flaws = []
+        self.languages = []
         self.specials = []
         self.url = url
         self.last_updated = 'never'
@@ -51,11 +51,14 @@ class Ancestry:
             'Size': self.size,
             'Speed': self.speed,
             'Boosts': self.boosts,
-            'Flaws': self.flaws,
+            
             'Languages': self.languages,
             'URL': self.url,
             'LastUpdated': self.last_updated
         }
+
+        if len(self.flaws) > 0 and len(self.flaws[0]) > 0:
+            json.update({'Flaws': self.flaws})
 
         description = {}
         if self.description.general != '': description.update({'General': self.description.general})
@@ -106,6 +109,10 @@ class Ancestry:
         self.boosts = helpers.section_by_title(ancestral_soup_str, 'Ability Boosts').split('\n')
         self.flaws = helpers.section_by_title(ancestral_soup_str, 'Ability Flaw(s)').split('\n')
         self.languages = helpers.section_by_title(ancestral_soup_str, 'Languages').split('\n')
+        
+        if self.boosts == ['Two free ability boosts']:
+            self.boosts = ['Free','Free']
+        
         self.specials = []
         
         specials_soup = ancestral_soup.find_all('h2', class_='title')
