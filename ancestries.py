@@ -7,19 +7,24 @@ from dateutil.parser import parse
 
 class AncestryDescription:
     def __init__(self, full_page, name):
-        self.general = helpers.trim_html(full_page, '</i></a><br/>', '<h2 class="title">You Might...')
-        self.you_might = helpers.ul_to_list(helpers.trim_html(full_page, 'You Might...</h2>', '<h2 class="title">Others Probably...'))
-        if 'half' in name.lower():
-            self.others_probably = helpers.ul_to_list(helpers.trim_html(full_page, 'Others Probably...</h2>', f'<h1 class="title">{name} Mechanics'))
-        else:
-            self.others_probably = helpers.ul_to_list(helpers.trim_html(full_page, 'Others Probably...</h2>', '<h2 class="title">Physical Description'))
-        if 'half' not in name.lower():
-            self.physical_description = helpers.trim_html(full_page, 'Physical Description</h2>', '<h2 class="title">Society')
-        self.society = ''
-        self.alignment_religion = ''
-        self.names = ''
-        self.sample_names = ['']
+        self.general =                              helpers.trim_html(full_page, '</i></a><br/>', helpers.hxtitle('You Might...', '2'))
+        self.you_might = helpers.ul_to_list(        helpers.section_by_title(full_page, 'You Might...'))
+        self.others_probably = helpers.ul_to_list(  helpers.section_by_title(full_page, 'Others Probably...'))
+        self.physical_description =                 helpers.section_by_title(full_page, 'Physical Description')
+        self.society =                              helpers.section_by_title(full_page, 'Society')
+        self.alignment_religion =                   helpers.section_by_title(full_page, 'Alignment and Religion')
+        self.adventurers =                          helpers.section_by_title(full_page, 'Adventurers')
+        self.names =                                helpers.section_by_title(full_page, 'Names')
+        self.sample_names =                         helpers.section_by_title(full_page, 'Sample Names')
         
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+class AncestrySpecial:
+    def __init__(self, full_page, name):
+        self.name = name
+        self.description = helpers.section_by_title(full_page, name)
+    
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
     
@@ -31,10 +36,10 @@ class Ancestry:
         self.hp = 0
         self.size = ''
         self.speed = 0
-        self.boosts = ['']
-        self.flaws = ['']
-        self.languages = ['']
-        self.specials = ['']
+        self.boosts = []
+        self.flaws = []
+        self.languages = []
+        self.specials = []
         self.url = url
         self.last_updated = 'never'
     
@@ -42,26 +47,37 @@ class Ancestry:
         json = {
             'Name': self.name,
             'Traits': self.traits,
-            'Description': {
-                'General': self.description.general,
-                'YouMight': self.description.you_might,
-                'OthersProbably': self.description.others_probably,
-                'PhysicalDescription': self.description.physical_description,
-                'Society': self.description.society,
-                'AlignmentReligion': self.description.alignment_religion,
-                'Names': self.description.names,
-                'SampleNames': self.description.sample_names
-            },
             'HP': self.hp,
             'Size': self.size,
             'Speed': self.speed,
             'Boosts': self.boosts,
-            'Flaws': self.flaws,
+            
             'Languages': self.languages,
-            'Specials': self.specials,
             'URL': self.url,
             'LastUpdated': self.last_updated
         }
+
+        if len(self.flaws) > 0 and len(self.flaws[0]) > 0:
+            json.update({'Flaws': self.flaws})
+
+        description = {}
+        if self.description.general != '': description.update({'General': self.description.general})
+        if self.description.you_might != '': description.update({'YouMight': self.description.you_might})
+        if self.description.others_probably != '': description.update({'OthersProbably': self.description.others_probably})
+        if self.description.physical_description != '': description.update({'PhysicalDescription': self.description.physical_description})
+        if self.description.society != '': description.update({'Society': self.description.society})
+        if self.description.alignment_religion != '': description.update({'AlignmentReligion': self.description.alignment_religion})
+        if self.description.adventurers != '': description.update({'Adventurers': self.description.adventurers})
+        if self.description.names != '': description.update({'Names': self.description.names})
+        if self.description.sample_names != '': description.update({'SampleNames': self.description.sample_names})
+        json.update({'Description': description})
+
+        specials = {}
+        for s in self.specials:
+            specials.update({s.name: s.description})
+        if len(specials) > 0:
+            json.update({'Specials': specials})
+        
         return json
 
     def scrape(self):
@@ -79,12 +95,40 @@ class Ancestry:
         ancestral_soup = BeautifulSoup(response.text, 'html.parser')
         
         # scrape traits
-        trait_spans = ancestral_soup.find_all("span", class_="trait")
+        trait_spans = ancestral_soup.find_all('span', class_='trait')
         trait_list = [t.a.contents[0] for t in trait_spans]
         self.traits = trait_list
         
+        ancestral_soup_str = str(ancestral_soup)
+
         # scrape description
-        self.description = AncestryDescription(str(ancestral_soup), self.name)
+        self.description = AncestryDescription(ancestral_soup_str, self.name)
+        self.hp = helpers.section_by_title(ancestral_soup_str, 'Hit Points')
+        self.size = helpers.section_by_title(ancestral_soup_str, 'Size')
+        self.speed = helpers.section_by_title(ancestral_soup_str, 'Speed')
+        self.boosts = helpers.section_by_title(ancestral_soup_str, 'Ability Boosts').split('\n')
+        self.flaws = helpers.section_by_title(ancestral_soup_str, 'Ability Flaw(s)').split('\n')
+        self.languages = helpers.section_by_title(ancestral_soup_str, 'Languages').split('\n')
+        
+        if self.boosts == ['Two free ability boosts']:
+            self.boosts = ['Free','Free']
+        
+        self.specials = []
+        
+        specials_soup = ancestral_soup.find_all('h2', class_='title')
+        specials_list = [str(s) for s in specials_soup]
+        languages_index = -1
+        for i in range(len(specials_list)):
+            if 'Languages' in specials_list[i]:
+                languages_index = i
+                specials_list = specials_list[i+1:]
+                break
+
+        if len(specials_list) > 0:
+            # self.specials = specials_list
+            for s in specials_list:
+                special = AncestrySpecial(ancestral_soup_str, helpers.untitle(s))
+                self.specials.append(special)
 
         self.last_updated = str(datetime.datetime.now())
         return True
@@ -96,7 +140,9 @@ class Ancestry:
         Ancestry.last_hit = datetime.datetime.now()
         ancestral_soup = BeautifulSoup(response.text, 'html.parser')
         titles = ancestral_soup.find_all("h2", class_="title")
-        links = [t.find_all("a")[1] for t in titles]
+        if len(titles) == 0:
+            return scraped
+        links = [t.find_all("a")[-1] for t in titles]
         ancestries_list = [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]
         for a in ancestries_list:
             name = a[0]
