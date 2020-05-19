@@ -25,16 +25,12 @@ class Data:
             # if no matches are found, report
             return f'Ancestry "{name}" not found'
 
-        # convert to json, append, and return
-        json_list = []
-        for a in self.all_ancestries:
-            a.scrape()
-            json_list.append(a.to_jsonify())
-        return json_list
+        # convert to list of json objects and return
+        return [a.to_jsonify() for a in self.all_ancestries]
     
     def get_backgrounds(self, name=None):
         # check for new entries every 20 minutes
-        if ((datetime.datetime.now() - backgrounds.Backround.last_hit).total_seconds() >= 1200 or
+        if ((datetime.datetime.now() - backgrounds.Background.last_hit).total_seconds() >= 1200 or
             len(self.all_backgrounds) == 0):
             tmp_backgrounds = backgrounds.Background.get_all()
             for b in tmp_backgrounds:
@@ -50,9 +46,5 @@ class Data:
             # if no matches are found, report
             return f'Background "{name}" not found'
 
-        # convert to json, append, and return
-        json_list = []
-        for b in self.all_backgrounds:
-            b.scrape()
-            json_list.append(b.to_jsonify())
-        return json_list
+        # convert to list of json objects and return
+        return [b.to_jsonify() for b in self.all_backgrounds]

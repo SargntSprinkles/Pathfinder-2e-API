@@ -22,7 +22,7 @@ def ancestries_router():
 
 # @app.route('/archetypes', methods=['GET'])
 
-@app.route('api/v1/backgrounds', methods=['GET'])
+@app.route('/api/v1/backgrounds', methods=['GET'])
 def backgrounds_router():
     params = request.args
     name = params.get('name')

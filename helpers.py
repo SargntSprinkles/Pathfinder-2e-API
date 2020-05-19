@@ -1,5 +1,6 @@
 import re
 from bs4 import BeautifulSoup
+from requests import get
 
 def trim_html(src, start, end):
     if start not in src or end not in src:
@@ -50,19 +51,12 @@ def sanitize(src):
     tmp = re.sub('<a.*?>|</a>', '', tmp)
     return tmp.strip()
 
-def get_all(category):
+def get_all(category, header):
         """ Returns a list of all h2 titles of the given type currently on AoN """
-        scraped = []
         response = get(f'http://2e.aonprd.com/{category}.aspx')
-        Ancestry.last_hit = datetime.datetime.now()
         soup = BeautifulSoup(response.text, 'html.parser')
-        titles = soup.find_all("h2", class_="title")
+        titles = soup.find_all(header, class_="title")
         if len(titles) == 0:
-            return scraped
+            return []
         links = [t.find_all("a")[-1] for t in titles]
-        item_list = [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]
-        for i in item_list:
-            name = i[0]
-            url = i[1]
-            scraped.append([name, url])
-        return scraped
+        return [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]

@@ -44,6 +44,7 @@ class Ancestry:
         self.last_updated = 'never'
     
     def to_jsonify(self):
+        self.scrape()
         json = {
             'Name': self.name,
             'Traits': self.traits,
@@ -134,13 +135,8 @@ class Ancestry:
 
     def get_all():
         """ Returns a list of all ancestries currently on AoN """
-        scraped = []
         Ancestry.last_hit = datetime.datetime.now()
-        for a in helpers.get_all('Ancestries'):
-            name = a[0]
-            url = a[1]
-            scraped.append(Ancestry(name, url))
-        return scraped
+        return [Ancestry(a[0], a[1]) for a in helpers.get_all('Ancestries','h2')]
 
 # test_ancestries = [
 #     {
