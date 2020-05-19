@@ -49,3 +49,20 @@ def sanitize(src):
     tmp = tmp.replace(u'\u2019',"'")
     tmp = re.sub('<a.*?>|</a>', '', tmp)
     return tmp.strip()
+
+def get_all(category):
+        """ Returns a list of all h2 titles of the given type currently on AoN """
+        scraped = []
+        response = get(f'http://2e.aonprd.com/{category}.aspx')
+        Ancestry.last_hit = datetime.datetime.now()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        titles = soup.find_all("h2", class_="title")
+        if len(titles) == 0:
+            return scraped
+        links = [t.find_all("a")[-1] for t in titles]
+        item_list = [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]
+        for i in item_list:
+            name = i[0]
+            url = i[1]
+            scraped.append([name, url])
+        return scraped

@@ -135,15 +135,8 @@ class Ancestry:
     def get_all():
         """ Returns a list of all ancestries currently on AoN """
         scraped = []
-        response = get('http://2e.aonprd.com/Ancestries.aspx')
         Ancestry.last_hit = datetime.datetime.now()
-        ancestral_soup = BeautifulSoup(response.text, 'html.parser')
-        titles = ancestral_soup.find_all("h2", class_="title")
-        if len(titles) == 0:
-            return scraped
-        links = [t.find_all("a")[-1] for t in titles]
-        ancestries_list = [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]
-        for a in ancestries_list:
+        for a in helpers.get_all('Ancestries'):
             name = a[0]
             url = a[1]
             scraped.append(Ancestry(name, url))
