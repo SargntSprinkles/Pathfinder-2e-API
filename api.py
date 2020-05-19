@@ -21,7 +21,13 @@ def ancestries_router():
     return jsonify(api_data.get_ancestries(name=name))
 
 # @app.route('/archetypes', methods=['GET'])
-# @app.route('/backgrounds', methods=['GET'])
+
+@app.route('api/v1/backgrounds', methods=['GET'])
+def backgrounds_router():
+    params = request.args
+    name = params.get('name')
+    return jsonify(api_data.get_backgrounds(name=name))
+
 # @app.route('/classes', methods=['GET'])
 # @app.route('/conditions', methods=['GET'])
 # @app.route('/equipment', methods=['GET'])
