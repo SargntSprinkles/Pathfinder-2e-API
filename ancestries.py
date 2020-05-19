@@ -51,7 +51,6 @@ class Ancestry:
             'Size': self.size,
             'Speed': self.speed,
             'Boosts': self.boosts,
-            
             'Languages': self.languages,
             'URL': self.url,
             'LastUpdated': self.last_updated
