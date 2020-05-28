@@ -45,4 +45,12 @@ class Background:
     def get_all():
         """ Returns a list of all backgrounds currently on AoN """
         Background.last_hit = datetime.datetime.now()
-        return [Background(b[0],b[1]) for b in helpers.get_all('Backgrounds','h1')]
+        response = get(f'http://2e.aonprd.com/Backgrounds.aspx')
+        soup = BeautifulSoup(response.text, 'html.parser')
+        titles = soup.find_all('h1', class_="title")
+        if len(titles) == 0:
+            return []
+        links = [t.find_all("a")[-1] for t in titles]
+        return [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]
+        # return helpers.get_all('Backgrounds','h1')
+        # return [Background(b[0],b[1]) for b in helpers.get_all('Backgrounds','h1')]

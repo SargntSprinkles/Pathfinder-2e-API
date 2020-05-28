@@ -26,7 +26,8 @@ def ancestries_router():
 def backgrounds_router():
     params = request.args
     name = params.get('name')
-    return jsonify(api_data.get_backgrounds(name=name))
+    # return jsonify(api_data.get_backgrounds(name=name))
+    return str(api_data.get_backgrounds(name=name))
 
 # @app.route('/classes', methods=['GET'])
 # @app.route('/conditions', methods=['GET'])

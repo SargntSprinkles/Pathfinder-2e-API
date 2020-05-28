@@ -52,11 +52,12 @@ def sanitize(src):
     return tmp.strip()
 
 def get_all(category, header):
-        """ Returns a list of all h2 titles of the given type currently on AoN """
+        """ Returns a list of all titles of the given type and header level currently on AoN """
         response = get(f'http://2e.aonprd.com/{category}.aspx')
         soup = BeautifulSoup(response.text, 'html.parser')
         titles = soup.find_all(header, class_="title")
         if len(titles) == 0:
             return []
+        return titles
         links = [t.find_all("a")[-1] for t in titles]
         return [[l.contents[0], 'http://2e.aonprd.com/' + l['href']] for l in links]
